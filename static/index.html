@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-black text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sentinel Live • Household Guardian</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            neon: '#00ffea',
+            danger: '#ff0066',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Our custom CSS -->
+  <link rel="stylesheet" href="/static/index.css" />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-black via-purple-900 to-black font-mono">
+
+  <div class="container mx-auto p-4 max-w-6xl">
+    <h1 class="text-5xl font-bold text-center mt-8 mb-2 tracking-wider">
+      <span class="text-neon">SENTINEL</span> LIVE
+    </h1>
+    <p class="text-center text-gray-400 mb-8">Real-time Household Object Detection • Built by a ML God</p>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Video Feed -->
+      <div class="lg:col-span-2">
+        <div class="relative rounded-xl overflow-hidden box">
+          <video id="video" autoplay playsinline class="w-full"></video>
+          <canvas id="canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+          <div id="snakeOverlay" class="hidden absolute inset-0 flex items-center justify-center bg-red-900 bg-opacity-90">
+            <div class="text-center">
+              <h2 class="text-8xl font-bold text-white animate-pulse">SNAKE DETECTED!</h2>
+              <p class="text-4xl mt-4">RUN OR GRAB THE SHOVEL</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 flex justify-center gap-4">
+          <button id="startBtn" class="px-8 py-4 bg-neon text-black font-bold rounded-lg hover:bg-cyan-300 transition">
+            START CAMERA
+          </button>
+          <button id="stopBtn" class="px-8 py-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition hidden">
+            STOP
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="space-y-6">
+        <div class="bg-gray-900 bg-opacity-60 backdrop-blur rounded-xl p-6 border border-neon">
+          <h2 class="text-2xl font-bold mb-4 text-neon">Live Detections</h2>
+          <ul id="detectionList" class="space-y-3 text-lg"></ul>
+        </div>
+        <div class="bg-gray-900 bg-opacity-60 backdrop-blur rounded-xl p-6 border border-gray-700">
+          <h3 class="text-xl font-bold mb-3">Status</h3>
+          <p id="status" class="text-green-400">Camera stopped</p>
+          <p class="text-sm text-gray-500 mt-4">Model: Faster r-cnn `v1`</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="snakeAlarm" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-danger-1014.mp3" preload="auto"></audio>
+
+  <!-- Our JS file -->
+  <script src="/static/script.js"></script>
+</body>
+</html>

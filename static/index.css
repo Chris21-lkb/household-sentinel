@@ -1,0 +1,13 @@
+.box {
+  box-shadow: 0 0 15px rgba(0, 255, 234, 0.6);
+  border: 2px solid #00ffea;
+}
+
+.snake-alert {
+  animation: flash 0.4s infinite alternate;
+}
+
+@keyframes flash {
+  from { background: #ff0066; }
+  to   { background: #990033; }
+}
