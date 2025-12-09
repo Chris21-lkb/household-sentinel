@@ -7,25 +7,25 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 
-# ────────────────────────────────
-# Load YOLOv11 model (GPU auto-detected)
-# ────────────────────────────────
+# Load model + GPU
 MODEL_PATH = Path(__file__).parent.parent / "models" / "best.pt"
-
 if not MODEL_PATH.exists():
-    raise FileNotFoundError(f"Model not found! Put your best.pt in: {MODEL_PATH}")
+    raise FileNotFoundError(f"Put your best.pt here → {MODEL_PATH}")
 
-model = YOLO(MODEL_PATH)  # Automatically uses RTX 3060 if available
+model = YOLO(MODEL_PATH)
+print(f"YOLOv11 loaded from {MODEL_PATH}")
+print("Classes:", list(model.names.values()))
 
-device = "CUDA" if model.device.type == "cuda" else "CPU"
-print(f"Household Sentinel LIVE → YOLOv11 loaded on {device}")
-print(f"Classes: {list(model.names.values())}")
+# Force GPU
+import torch
+if torch.cuda.is_available():
+    model.model.to('cuda')
+    print(f"GPU ACTIVE: {torch.cuda.get_device_name(0)}")
+else:
+    print("Running on CPU")
 
-# ────────────────────────────────
-# FastAPI app
-# ────────────────────────────────
 BASE_DIR = Path(__file__).parent.parent
-app = FastAPI(title="Household Sentinel")
+app = FastAPI()
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -35,25 +35,43 @@ async def root():
 
 @app.post("/detect")
 async def detect(file: UploadFile = File(...)):
-    # Read uploaded frame
+    # Read webcam frame
     contents = await file.read()
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    # YOLOv11 inference (one magic line)
-    results = model(img, conf=0.4, iou=0.45, verbose=False)[0]
+    # DEBUG: Save the actual frame the server receives
+    cv2.imwrite("debug_last_frame.jpg", img)
+    print(f"Saved debug_last_frame.jpg → shape: {img.shape}, mean pixel value: {img.mean():.1f}")
+
+    # THIS IS THE KEY: Resize exactly like training
+    img_resized = cv2.resize(img, (640, 640))
+
+    # Run inference
+    results = model(img_resized, conf=0.25, iou=0.45, verbose=False)[0]
 
     detections = []
+    orig_h, orig_w = img.shape[:2]
+
     for box in results.boxes:
         x1, y1, x2, y2 = map(int, box.xyxy[0])
-        conf = float(box.conf[0])
+        conf = float(box.conf)
         cls_id = int(box.cls[0])
-        class_name = results.names[cls_id]
+        name = results.names[cls_id]
+
+        # Scale back to original webcam resolution
+        x1 = int(x1 * orig_w / 640)
+        y1 = int(y1 * orig_h / 640)
+        x2 = int(x2 * orig_w / 640)
+        y2 = int(y2 * orig_h / 640)
 
         detections.append({
-            "class": class_name,
+            "class": name,
             "confidence": round(conf, 3),
             "box": [x1, y1, x2, y2]
         })
+
+    # Debug: print what we actually return
+    print("Sending detections →", detections)
 
     return {"detections": detections}

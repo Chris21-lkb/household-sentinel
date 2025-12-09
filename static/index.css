@@ -1,13 +1,57 @@
-.box {
-  box-shadow: 0 0 15px rgba(0, 255, 234, 0.6);
-  border: 2px solid #00ffea;
+/* static/index.css */
+
+/* Custom Scrollbar for Detection List */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
 }
 
-.snake-alert {
-  animation: flash 0.4s infinite alternate;
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #0f172a; /* Dark background */
+    border-radius: 10px;
 }
 
-@keyframes flash {
-  from { background: #ff0066; }
-  to   { background: #990033; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #00D1FF; /* Primary color */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #00A6CC;
+}
+
+/* Base style for detection list items */
+#detectionList li {
+    padding-left: 0.5rem;
+    border-left: 4px solid #0F172A; /* Initial dark border */
+    transition: all 0.2s ease-in-out;
+}
+
+/* Style for detected items (non-alarm) */
+#detectionList li:not(.alert-item):hover {
+    background-color: #1e293b; /* Subtle hover effect */
+    border-left-color: #00D1FF; /* Primary color indicator */
+}
+
+/* Style for the full-body alarm state */
+.alert-active {
+    background-color: #2D0813 !important; /* Dark red background */
+    transition: background-color 0.1s ease-in-out;
+}
+
+/* Animation for the alert/alarm item */
+.alert-item {
+    border-left-color: #FF3F6B !important; /* Secondary danger color */
+    box-shadow: 0 0 10px rgba(255, 63, 107, 0.7);
+    animation: pulse-danger 0.5s infinite alternate;
+}
+
+@keyframes pulse-danger {
+    from {
+        box-shadow: 0 0 10px rgba(255, 63, 107, 0.7);
+        border-color: #FF3F6B;
+    }
+    to {
+        box-shadow: 0 0 20px rgba(255, 63, 107, 1);
+        border-color: #FF3F6B;
+    }
 }
