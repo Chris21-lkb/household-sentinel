@@ -1,181 +1,142 @@
-// static/script.js — FINAL COMPLETE AND CORRECTED VERSION
+// static/script.js — FINAL DUAL-CANVAS VERSION
+
 const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const videoCanvas = document.getElementById('videoCanvas');
+const boxCanvas = document.getElementById('boxCanvas');
+
+const videoCtx = videoCanvas.getContext('2d');
+const boxCtx = boxCanvas.getContext('2d');
+
 const detectionList = document.getElementById('detectionList');
 const status = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
-const alertOverlay = document.getElementById('alertOverlay'); 
-const snakeAlarm = document.getElementById('snakeAlarm');
-
-// New elements for visual effects
-const videoContainer = document.getElementById('videoContainer'); 
-const scannerEffect = document.getElementById('scanner-effect');
+const videoContainer = document.getElementById('videoContainer');
 
 let stream = null;
 let processing = false;
 
-function resizeCanvas() {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+function resizeCanvases() {
+    videoCanvas.width = video.videoWidth;
+    videoCanvas.height = video.videoHeight;
+
+    boxCanvas.width = video.videoWidth;
+    boxCanvas.height = video.videoHeight;
 }
 
 startBtn.addEventListener('click', async () => {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
-        video.play();
+
         status.textContent = "ACTIVATED • Processing Frames";
-        status.className = "text-primary font-bold animate-pulse";
+        status.className = "text-blue-400 font-bold animate-pulse";
+
         startBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
-        document.body.classList.remove('alert-active'); 
+
         videoContainer.classList.add('shadow-glow-primary');
 
-        // Initial message cleared
-        detectionList.innerHTML = ''; 
+        detectionList.innerHTML = "";
 
         video.onloadedmetadata = () => {
-            resizeCanvas();
+            resizeCanvases();
             detectFrame();
         };
+
     } catch (error) {
-        console.error("Error accessing camera:", error);
-        status.textContent = "ERROR: CAMERA ACCESS DENIED";
-        status.className = "text-secondary font-bold";
+        console.error("Camera error:", error);
+        status.textContent = "CAMERA ERROR";
+        status.className = "text-red-500 font-bold";
     }
 });
 
 stopBtn.addEventListener('click', () => {
-    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (stream) stream.getTracks().forEach(track => track.stop());
+
     video.srcObject = null;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    detectionList.innerHTML = '<li class="text-slate-500 py-2">System awaiting activation...</li>';
+    videoCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+    boxCtx.clearRect(0, 0, boxCanvas.width, boxCanvas.height);
+
     status.textContent = "Offline";
     status.className = "text-green-500 font-bold";
+
+    detectionList.innerHTML =
+        '<li class="text-slate-500">System awaiting activation...</li>';
+
     startBtn.classList.remove('hidden');
     stopBtn.classList.add('hidden');
-    
-    // Deactivate alarm visuals
-    alertOverlay.classList.add('hidden');
-    document.body.classList.remove('alert-active'); 
-    videoContainer.classList.remove('shadow-glow-primary', 'shadow-glow-secondary', 'border-secondary/50');
-    videoContainer.classList.add('border-primary/50');
-    scannerEffect.classList.remove('border-secondary/20', 'shadow-glow-secondary/50');
-    scannerEffect.classList.add('border-primary/20', 'shadow-glow-primary/50');
-    
-    // Stop audio
-    snakeAlarm.pause();
-    snakeAlarm.currentTime = 0;
+
+    videoContainer.classList.remove('shadow-glow-primary');
 });
 
 async function detectFrame() {
     if (!video.paused && !processing) {
         processing = true;
-        resizeCanvas();
 
-        // 1A. Draw video content to canvas (for toBlob conversion)
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height); 
+        // draw current frame
+        videoCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
-        // 1B. Prepare frame for server
-        const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        const imageBlob = await new Promise(resolve =>
+            videoCanvas.toBlob(resolve, "image/jpeg", 0.85)
+        );
+
         const formData = new FormData();
-        formData.append('file', imageBlob, 'frame.jpg');
-
-        let isAlarmClassDetected = false;
-        // Set the class you want to trigger the alarm (e.g., 'sofa', 'laptop', 'tv')
-        const ALARM_CLASS = 'sofa'; 
+        formData.append("file", imageBlob, "frame.jpg");
 
         try {
-            const response = await fetch('/detect', { method: 'POST', body: formData });
+            const response = await fetch("/detect", { method: "POST", body: formData });
             const result = await response.json();
 
-            // --- CRITICAL DRAWING FIX ---
-            // 2A. Clear the entire canvas (removes old boxes and video image)
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 2B. REDRAW THE CURRENT VIDEO FRAME! (This is the fix for the bounding box issue)
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            // -----------------------------
+            // Clear box canvas only
+            boxCtx.clearRect(0, 0, boxCanvas.width, boxCanvas.height);
+            detectionList.innerHTML = "";
 
-            detectionList.innerHTML = '';
+            const scaleX = boxCanvas.width / result.orig_width;
+            const scaleY = boxCanvas.height / result.orig_height;
 
-            // 3. Process detections and draw boxes
             result.detections.forEach(d => {
-                const [x1, y1, x2, y2] = d.box;
-                const confPercent = (d.confidence * 100).toFixed(1);
-                const isCurrentItemAlarm = d.class.toLowerCase() === ALARM_CLASS;
+                const [x1o, y1o, x2o, y2o] = d.box;
+                const x1 = x1o * scaleX;
+                const y1 = y1o * scaleY;
+                const x2 = x2o * scaleX;
+                const y2 = y2o * scaleY;
 
-                if (isCurrentItemAlarm) { 
-                    isAlarmClassDetected = true;
-                }
+                // draw box
+                boxCtx.strokeStyle = "#00D1FF";
+                boxCtx.lineWidth = 4;
+                boxCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
-                // --- Drawing Bounding Box and Label ---
-                const color = isCurrentItemAlarm ? '#FF3F6B' : '#00D1FF'; // Secondary (Red) or Primary (Blue)
-                
-                // Box
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                // draw label
+                const conf = (d.confidence * 100).toFixed(1);
+                const text = `${d.class} ${conf}%`;
+                boxCtx.font = "bold 20px monospace";
+                const tw = boxCtx.measureText(text).width;
+                const th = 24;
+                const ty = y1 > th ? y1 - th : y1 + 5;
 
-                // Background behind text
-                ctx.fillStyle = color;
-                const text = `${d.class} ${confPercent}%`;
-                ctx.font = 'bold 20px monospace';
-                const textMetrics = ctx.measureText(text);
-                const textHeight = 25; 
-                const yPos = y1 > textHeight ? y1 - textHeight : y1 + 10;
-                
-                ctx.fillRect(x1, yPos, textMetrics.width + 10, textHeight);
+                boxCtx.fillStyle = "#00D1FF";
+                boxCtx.fillRect(x1, ty, tw + 10, th);
 
-                // Text
-                ctx.fillStyle = '#0F172A'; // Dark background color for text
-                ctx.fillText(text, x1 + 5, yPos + 18);
+                boxCtx.fillStyle = "#0F172A";
+                boxCtx.fillText(text, x1 + 5, ty + 18);
 
-                // --- Detection List Update ---
-                const li = document.createElement('li');
-                
-                li.className = isCurrentItemAlarm ? 
-                    'flex justify-between items-center py-2 px-1 alert-item border-b border-secondary/50' : 
-                    'flex justify-between items-center py-2 px-1 border-b border-slate-700';
-
-                const nameClass = isCurrentItemAlarm ? 'text-secondary text-xl font-medium' : 'text-primary text-xl font-medium';
-                const confClass = isCurrentItemAlarm ? 'text-secondary font-extrabold text-xl' : 'text-white font-extrabold text-xl';
-
-                li.innerHTML = `<span class="${nameClass}">${d.class}</span><span class="${confClass}">${confPercent}%</span>`;
+                // update list
+                const li = document.createElement("li");
+                li.className = "flex justify-between py-1 border-b border-slate-700";
+                li.innerHTML = `<span class="text-blue-400 font-bold">${d.class}</span>
+                                <span class="text-white font-bold">${conf}%</span>`;
                 detectionList.appendChild(li);
             });
 
-            // 4. ACTIVATE/DEACTIVATE SYSTEM ALARM
-            if (isAlarmClassDetected) {
-                alertOverlay.classList.remove('hidden');
-                document.body.classList.add('alert-active');
-                videoContainer.classList.remove('border-primary/50', 'shadow-glow-primary');
-                videoContainer.classList.add('border-secondary/50', 'shadow-glow-secondary');
-                scannerEffect.classList.remove('border-primary/20', 'shadow-glow-primary/50');
-                scannerEffect.classList.add('border-secondary/20', 'shadow-glow-secondary/50');
-                
-                snakeAlarm.play().catch(e => console.log("Audio play failed:", e)); 
-            } else {
-                alertOverlay.classList.add('hidden');
-                document.body.classList.remove('alert-active');
-                videoContainer.classList.remove('border-secondary/50', 'shadow-glow-secondary');
-                videoContainer.classList.add('border-primary/50', 'shadow-glow-primary');
-                scannerEffect.classList.remove('border-secondary/20', 'shadow-glow-secondary/50');
-                scannerEffect.classList.add('border-primary/20', 'shadow-glow-primary/50');
-
-                snakeAlarm.pause();
-                snakeAlarm.currentTime = 0;
-            }
-
         } catch (err) {
-            console.error("Error:", err);
-            status.textContent = "NETWORK ERROR: Could not reach detection server.";
-            status.className = "text-secondary font-bold";
+            console.error(err);
+            status.textContent = "NETWORK ERROR";
+            status.className = "text-red-400 font-bold";
         }
 
         processing = false;
     }
+
     requestAnimationFrame(detectFrame);
 }

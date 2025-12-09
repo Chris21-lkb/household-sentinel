@@ -19,7 +19,6 @@
                     },
                     boxShadow: {
                         'glow-primary': '0 0 15px rgba(0, 209, 255, 0.7)',
-                        'glow-secondary': '0 0 15px rgba(255, 63, 107, 0.7)',
                     }
                 }
             }
@@ -45,15 +44,11 @@
                     
                     <div id="scanner-effect" class="absolute inset-0 z-10 pointer-events-none transition-all duration-300 border-4 rounded-2xl border-primary/20 shadow-glow-primary/50"></div>
                     
-                    <video id="video" autoplay playsinline class="w-full relative z-0" crossorigin="anonymous"></video>
-                    <canvas id="canvas" class="absolute top-0 left-0 w-full h-full z-20"></canvas>
+                    <!-- Video and Dual Canvases -->
+                    <video id="video" autoplay playsinline class="w-full relative z-0"></video>
+                    <canvas id="videoCanvas" class="absolute top-0 left-0 w-full h-full z-10"></canvas>
+                    <canvas id="boxCanvas" class="absolute top-0 left-0 w-full h-full z-20 pointer-events-none"></canvas>
                     
-                    <div id="alertOverlay" class="hidden absolute inset-0 flex items-center justify-center bg-secondary bg-opacity-95 z-30 transition-opacity duration-300">
-                        <div class="text-center p-8">
-                            <h2 class="text-8xl font-bold text-white animate-pulse">!! SECURITY ALERT !!</h2>
-                            <p class="text-4xl mt-6 text-yellow-300">High-Priority Object Detected</p>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="mt-6 flex justify-center gap-6">
@@ -80,14 +75,12 @@
                 <div class="bg-darkbg rounded-xl p-6 border-2 border-slate-700 shadow-xl">
                     <h3 class="text-2xl font-bold mb-3 text-white">System Status</h3>
                     <p id="status" class="text-green-500 font-bold">Offline</p>
-                    <p class="text-sm text-slate-400 mt-4">Model: Faster R-CNN **`v1`**</p>
+                    <p class="text-sm text-slate-400 mt-4">Model: YOLOv11n **`v1`**</p>
                     <p class="text-sm text-slate-400">Target Classes: 11 household objects</p>
                 </div>
             </div>
         </main>
     </div>
-
-    <audio id="snakeAlarm" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-danger-1014.mp3" preload="auto"></audio>
 
     <script src="/static/script.js"></script>
 </body>

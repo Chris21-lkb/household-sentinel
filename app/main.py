@@ -74,4 +74,8 @@ async def detect(file: UploadFile = File(...)):
     # Debug: print what we actually return
     print("Sending detections →", detections)
 
-    return {"detections": detections}
+    return {
+    "detections": detections,
+    "orig_width": orig_w,
+    "orig_height": orig_h
+    }
